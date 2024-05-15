@@ -3,7 +3,7 @@ kind: ClusterConfig
 
 metadata:
   name: eks-acg
-  region: us-east-1
+  region: eu-west-1
   version: "1.20"
 
 vpc:
