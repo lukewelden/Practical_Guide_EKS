@@ -41,3 +41,21 @@ To allow OpenVPN to connect to a secondary CIDR follow the steps below. Note, th
 3. Run the following command to add a route to the secondary CIDR `sudo /usr/local/openvpn_as/scripts/sacli --key "vpn.server.routing.private_network.2" --value "100.64.0.0/16" ConfigPut`
 4. Restart the server with `sudo /usr/local/openvpn_as/scripts/sacli stop` and then `sudo /usr/local/openvpn_as/scripts/sacli start`
 5. Finally remove the SSH security rule attached to the OpenVPN server
+
+### DNS 
+In a typical EKS deployment a load balancer is provisioned to pass traffic onto the worker nodes. As part of this implementation an aws generated dns name is assigned to the load balancer. However, this creates additional overhead for Kubernetes administrators. This is where [External DNS](https://github.com/kubernetes-sigs/external-dns) comes into play. It will be installed inside of the Kubernetes cluster to manage DNS for the cluster instead of having to manage DNS externally through Route 53.
+
+#### Setting up the certificate
+Before we can implement External DNS we need to attach a certificate to the load balancer. To do this we deploy the [dns.json](./Infrastructure/cloudformation/dns/dns.json) CloudFormation template to provision a certificate. Note, if you already have a hosted zone specify `no` in the `DeployHostedZone` parameter. 
+
+Once the stack is deploying you'll need to validate the certificate that has been created. The easiest way to do this is to browse to the Certificate Manager console, click on the newly created certificate, expand the `Domain` section, and click on `Create record in Route53`. Once this is done ACM will begin to validate the certificate and the CloudFormation template will complete. 
+
+#### Setting up External DNS 
+Now that we have a wildcard SSL certificate for our domain, we can get to work on configuring ExternalDNS and a test nginx service which we can use to confirm that ExternalDNS is working as expected.  
+
+1. Deploy [external-dns.json](./Infrastructure/cloudformation/iam/external-dns.json) as a CloudFormation template and once the IAM Policy is created, attach it to the IAM Role associated with the worker EC2 nodes. 
+2. Deploy ExternalDNS via helm charts using [create.sh](./Infrastructure/k8s-tooling/1-external-dns/create.sh)
+3. Run the test nginx service with `kubectl apply -f Infrastructure/k8s-tooling/1-external-dns/02-testing-external-dns.yaml`, remembering to update dns name in [02-testing-external-dns.yaml](./Infrastructure/k8s-tooling/1-external-dns/02-testing-external-dns.yaml) 
+4. Test that you can browse to your test DNS domain name via http and https
+5. Once testing has been completed delete the test nginx service with `kubectl delete -f Infrastructure/k8s-tooling/1-external-dns/02-testing-external-dns.yaml` 
+

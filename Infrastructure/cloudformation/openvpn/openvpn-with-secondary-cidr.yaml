@@ -5,7 +5,7 @@ Parameters:
   NodeImageId:
     Description: The OpenVPN AMI Id
     Type: AWS::EC2::Image::Id
-    Default: ami-0461dc52a3f299bf7
+    Default: ami-0f6f5a74e666160bb
 
   NodeVolumeSize:
     Description: The size of the hard drive of the machines (GBs)
